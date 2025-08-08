@@ -19,7 +19,7 @@ The goal is to obtain terrain-corrected, calibrated SAR backscatter data (VV and
 ## Key Features
 
 -   **Secure Credential Management:** Uses a `.env` file to securely manage API credentials, keeping them out of source code.
--   **Cloud-Based Pre-Processing:** All heavy pre-processing (orthorectification, thermal noise removal, radiometric terrain correction) is performed on-demand by the Copernicus servers.
+-   **Cloud-Based Pre-Processing:** All heavy pre-processing (orthorectification, thermal noise removal, radiometric terrain correction) is performed on-demand by the Sentinel Hub - Process API servers.
 -   **Analysis-Ready Output:** The script retrieves a multi-band GeoTIFF file containing floating-point linear power values.
 -   **Interactive & Visual:** Designed for interactive execution in IDEs like VS Code, with a final step that visualizes the processed backscatter data using Matplotlib.
 
@@ -51,7 +51,7 @@ The script (`process_scene.py`) executes the following workflow through 5 main c
 -  **Data Quality Control:** 
     -   Applies `dataMask` to exclude no-data areas
     -   Implements noise masking with -22 dB threshold based on Sentinel-1 Noise Equivalent Sigma Zero (NESZ) specifications from [SentiWiki](https://sentiwiki.copernicus.eu/web/s1-mission)
--  **Visualization:** Converts linear power values to decibels (dB) and displays VV and VH polarizations using matplotlib with automatic scaling.
+-  **Visualization:** Converts linear power values to decibels (dB) and displays VV and VH polarizations using matplotlib. Masking is done by using the Kinrooi Field .shp file in the input folder and making white layer and a hole following the vector shape.
 
 ## Setup and Installation
 
