@@ -1,141 +1,208 @@
-# Automated Sentinel-1 Data Processing for Soil Moisture Analysis
+# Sentinel-1 Soil Moisture Processing Pipeline
 
-This project is the foundational data processing pipeline for a Master's thesis titled "Assimilation of Sentinel-1 Soil Moisture into SWIM² for Irrigation Scheduling in Belgian Arable Fields".
+ This project provides a complete pipeline for retrieving, processing, and analyzing Sentinel-1 SAR data to estimate soil moisture in agricultural fields. In development for a Master's thesis titled "Assimilation of Sentinel-1 Soil Moisture into SWIM² for Irrigation Scheduling in Belgian Arable Fields".
 
-The primary purpose of this script is to automate the retrieval and pre-processing of Sentinel-1 Ground Range Detected (GRD) satellite data for a specific agricultural study site. It leverages the **Copernicus Data Space Ecosystem (CDSE)** and its powerful **Sentinel Hub Process API** to acquire analysis-ready data, bypassing the need for manual downloads and local processing with specialized software like ESA's SNAP toolbox.
+## Overview
+
+```
+sentinelproc/
+├── process_all_scenes.py       # Downloads Sentinel-1 time series
+├── json_to_csv.py              # Converts metadata to CSV
+├── mask_farmland.py            # Masks images to farmland areas
+├── soil_moisture_workflow.py   # Main SM estimation
+├── evalscript.js               # Processing script
+├── images/
+│   └── Farmland.png            # Study area visualization
+└── input/
+    └── neeroeteren2025.shp     # Farmland boundaries
+```
 
 ## Display
 
-![Output](output/Output.png)
+![Farmland](images/Farmland.png)
 
-## Project Purpose
+*Neeroeteren study area: irrigated and non-irrigated farmland*
 
-The goal is to obtain terrain-corrected, calibrated SAR backscatter data (VV and VH polarizations) for a precise, user-defined agricultural polygon. This processed data serves as the direct input for the subsequent scientific steps of the thesis, which include:
-1.  Short-Term Change-Detection
-2.  Residual Vegetation & Roughness Correction
-3.  Dielectric Inversion to Volumetric Soil Moisture (θ)
-4.  Uncertainty Quantification and model assimilation.
+---
 
-## Key Features
+## Part 1: Setup
 
--   **Secure Credential Management:** Uses a `.env` file to securely manage API credentials, keeping them out of source code.
--   **Cloud-Based Pre-Processing:** All heavy pre-processing (orthorectification, thermal noise removal, radiometric terrain correction) is performed on-demand by the Copernicus servers.
--   **Analysis-Ready Output:** The script retrieves a multi-band GeoTIFF file containing floating-point linear power values.
--   **Interactive & Visual:** Designed for interactive execution in IDEs like VS Code, with a final step that visualizes the processed backscatter data using Matplotlib.
+### Prerequisites
 
-## Workflow Overview
+1. **Copernicus Account:** [Register here](https://documentation.dataspace.copernicus.eu/Registration.html)
 
-The script (`process_scene.py`) executes the following workflow through 5 main cells:
-
-### Cell 1: Library Import & Credential Setup
--  **Secure Credential Management:** Uses `python-dotenv` library to load `CLIENT_ID` and `CLIENT_SECRET` from a `.env` file, keeping sensitive credentials out of the shared codebase.
--  **Library Imports:** Imports essential libraries for OAuth authentication, raster processing, and visualization.
-
-### Cell 2: Authentication
--  **OAuth2 Flow:** Implements the authentication process following [Copernicus CDSE documentation](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html).
--  **Token Management:** Uses `requests-oauthlib` library to handle OAuth2 token acquisition and management automatically.
-
-### Cell 3: Request Configuration  
--  **Bounding Box Definition:** Defines the precise study area coordinates (can be generated using the [Copernicus Request Builder](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/UserGuides/BeginnersGuide.html#requests-builder)).
--  **Evalscript Processing:** Implements the simplest evalscript version that extracts VV, VH polarizations and dataMask in FLOAT32 format for maximum precision.
--  **Advanced Processing Parameters:**
-    -   **Terrain Correction:** Uses `GAMMA0_TERRAIN` backscatter coefficient, which corrects for both incident angle and actual terrain using the Copernicus 30m DEM.
-    -   **Output Resolution:** Configured for 10m×10m spatial resolution in the final GeoTIFF output.
-    -   **Coordinate System:** Processes data in EPSG:32631 (UTM Zone 31N) for metric-based analysis.
-
-### Cell 4: Data Retrieval
--  **API Request Execution:** Sends the configured request to Sentinel Hub Process API and receives processed GeoTIFF data directly in memory.
-
-### Cell 5: Analysis & Visualization  
--  **Raster Processing:** Uses `rasterio` to handle the in-memory GeoTIFF data without temporary file creation.
--  **Data Quality Control:** 
-    -   Applies `dataMask` to exclude no-data areas
-    -   Implements noise masking with -22 dB threshold based on Sentinel-1 Noise Equivalent Sigma Zero (NESZ) specifications from [SentiWiki](https://sentiwiki.copernicus.eu/web/s1-mission)
--  **Visualization:** Converts linear power values to decibels (dB) and displays VV and VH polarizations using matplotlib with automatic scaling.
-
-## Setup and Installation
-
-Follow these steps to set up the project environment.
-
-### 1. Prerequisites
-
-You must have a registered account on the Copernicus Data Space Ecosystem.
--   **Registration:** [Create an account here](https://documentation.dataspace.copernicus.eu/Registration.html).
-
-### 2. Clone the Repository
+### Installation
 
 ```bash
+# Clone repository
 git clone <your-repository-url>
-cd <your-repository-directory>
-```
+cd sentinelproc
 
-### 3. Set Up Python Environment
-
-It is highly recommended to use a Python virtual environment to manage dependencies.
-
-```bash
-# Create a virtual environment
+# Create virtual environment
 python -m venv venv
+# Windows: .venv\Scripts\activate
+# macOS/Linux: source venv/bin/activate
 
-# Activate it (macOS/Linux)
-source venv/bin/activate
-
-# Activate it (Windows)
-.\venv\Scripts\activate
-```
-
-### 4. Install Dependencies
-
-The required libraries are listed in `requirements.txt`. To install it, run below in the command line.
-
-```bash
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 5. Configure Credentials
+### Configure Credentials
 
-Your script needs API credentials to access Copernicus data.
-
-1.  **Generate Credentials:** Follow the official guide to create an OAuth Client and get your `Client ID` and `Client Secret`:
-    -   **Guide:** [Registering an OAuth Client](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html#registering-oauth-client)
-
-2.  **Create `.env` file:** In the root of the project, create a file named `.env`.
-
-3.  **Add Credentials to `.env`:** Open the `.env` file and add your credentials in the following format:
-    ```
-    CLIENT_ID="sh-5923508d-3b7e-578e-addd-533235614798"
-    CLIENT_SECRET="5NPnWfw2NrBblkp8bhJyKOtm68H8bt5"
-    ```
-
-### 6. Secure Your Credentials
-
-If you ever need to publish your own modified version of this project, you shouldn't share your credential. To ensure your `.env` file is never committed to Git, create a `.gitignore` file in the root of your project and add the following lines:
-
+Create `.env` file:
 ```
-# .gitignore
-.env #Credential file
-venv/ #Environment folder
+CLIENT_ID=your_client_id
+CLIENT_SECRET=your_client_secret
+```
+**Guide to get this:** [Registering an OAuth Client](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html#registering-oauth-client)
+
+---
+
+## Part 2: Time Series Data Pipeline
+
+### 2.1 process_all_scenes.py
+
+Downloads a time series of Sentinel-1 GRD images from Copernicus Data Space API.
+
+**Key Variables:**
+```python
+bbox_neeroeteren_utm = [693430, 5665633, 693680, 5665921]  # UTM Zone 31N
+start_date = "2025-07-14T00:00:00Z"
+end_date = "2025-09-18T23:59:59Z"
 ```
 
-## Usage
+**Output:** `SAR_timeseries_output/*.tif` + `*.json` (metadata)
 
-The script is designed for interactive, cell-by-cell execution in an IDE that supports the `#%%` cell delimiter, such as **Visual Studio Code** with the Python extension.
+### 2.2 json_to_csv.py
 
-1.  Open the `process_scene.py` file in VS Code.
-2.  Place your cursor in the first cell (marked with `#%%`).
-3.  Press `Shift+Enter` to run the current cell and move to the next.
-4.  Execute each cell in sequence to see the output of each step. The final cell will display the processed SAR images.
+Converts JSON metadata to CSV for easier analysis. Only for analysis purpose.
 
-However running the code as normal python file in any other IDE would also work.
+**Output:** `SAR_metadata.csv` (scene_id, datetime, orbit_direction, orbit number, satellite)
 
-## Official Documentation References
+### 2.3 mask_farmland.py
 
-This project relies heavily on the official Copernicus Data Space Ecosystem documentation. For more details, please refer to the following pages:
+Masks downloaded images to extract farmland areas defined in shapefile.
 
--   **Main Portal:** [Sentinel Hub API](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub.html/)
--   **Authentication:** [Sentinel Hub Authentication Guide](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html)
--   **Requests Builder Tool:** [A graphical tool to build API requests](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/UserGuides/BeginnersGuide.html#requests-builder)
--   **Process API:** [Primary API for data processing](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Process.html)
--   **Sentinel-1 GRD Data:** [Details on S1 GRD bands and processing options](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/S1GRD.html)
--   **Evalscript V3:** [Documentation for writing custom processing scripts](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Evalscript/V3.html)
--   **Process API Examples:** [Official examples for various data collections](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Process/Examples/S1GRD.html)
+**Shapefile details:**
+| Feature ID | Name | Area (km²) |
+|-----------|------|------------|
+| 1 | Overall | 3.159 |
+| 2 | Non-irrigated | 0.637 |
+| 3 | Irrigated | 2.515 |
+
+**Output:**
+```
+{scene_id}_{orbit_direction}_{irrigated|nonirrigated}.tif
+```
+
+---
+
+## Part 3: Soil Moisture Estimation
+
+### 3.4 soil_moisture_workflow.py
+
+Processes masked time series to estimate volumetric soil moisture following the aanwarigeo method.
+
+**Workflow:**
+1. Load SAR data, remove duplicate dates
+2. Calculate DpRVIc vegetation index
+3. Find dry reference (minimum VV_dB per pixel)
+4. Calculate delta backscatter
+5. Upper envelope regression with DpRVIc
+6. Match with in-situ sensors
+7. Constrained linear regression for calibration
+
+**DpRVIc formula:**
+```
+q = VH / VV
+DpRVIc = q * (q + 3) / (q + 1)^2
+```
+
+**Key Variables:**
+```python
+GROWING_SEASON_START = datetime(2025, 7, 14)
+GROWING_SEASON_END = datetime(2025, 9, 18)
+TIME_TOLERANCE_HOURS = 24
+NUM_BINS = 100
+PERCENTILE = 0.98
+```
+
+**Input:**
+- `SAR_timeseries_masked/*.tif`
+- `input/Neeroeteren2_*.csv` (6 sensor files)
+
+**Output:**
+- `output/delta_backscatter/` (22 files)
+- `output/dprvic/` (22 files)
+- `output/regression_dprvic.png`
+- `output/regression_calibration.png`
+- `output/validation_chart_irr.png`
+- `output/validation_chart_nonirr.png`
+- `output/soil_moisture_timeseries.xlsx`
+- `output/volumetric_SSM.tif`
+
+### Results
+
+| Area | R² | Equation | RMSE |
+|------|-----|----------|------|
+| Irrigated | 0.544 | VMC = 0.267×Theta + 0.032 | 0.046 |
+| Non-irrigated | 0.283 | VMC = 0.152×Theta + 0.000 | 0.032 |
+
+### Output Visualizations
+
+**DpRVIc Regression:**
+![regression_dprvic](output/regression_dprvic.png)
+
+**Calibration with In-Situ:**
+![regression_calibration](output/regression_calibration.png)
+
+**Validation - Irrigated:**
+![validation_irr](output/validation_chart_irr.png)
+
+**Validation - Non-irrigated:**
+![validation_nonirr](output/validation_chart_nonirr.png)
+
+---
+
+## Quick Start
+
+```bash
+# Step 1: Set up credentials
+cp .env.example .env
+# Add CLIENT_ID and CLIENT_SECRET
+
+# Step 2: Download time series
+python process_all_scenes.py
+
+# Step 3: Convert metadata to CSV
+python json_to_csv.py
+
+# Step 4: Mask to farmland
+python mask_farmland.py
+
+# Step 5: Process soil moisture
+python soil_moisture_workflow.py
+
+# Step 6: Check outputs
+ls output/
+```
+
+---
+
+## Official Documentation
+
+- [Sentinel Hub API](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub.html/)
+- [Authentication Guide](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html)
+- [Process API](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Process.html)
+- [S1 GRD Data](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/S1GRD.html)
+- [Evalscript V3](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Evalscript/V3.html)
+
+---
+
+## References
+
+- [aanwarigeo/sentinel-1-soil-moisture (GitHub)](https://github.com/aanwarigeo/sentinel-1-soil-moisture)
+
+---
+
+*Updated: April 2026*

@@ -6,3 +6,6 @@
 /misc
 .git
 .vscode
+/SAR_timeseries*
+/__pycache__
+/output/d*
