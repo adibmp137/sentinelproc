@@ -1,0 +1,35 @@
+# Credentials
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+
+# Large data (re-download with process_all_scenes.py)
+SAR_timeseries_*/
+S2_timeseries_*/
+
+# Generated output
+output/
+
+# SWIM2 output (DREAM runs, figures, pickles)
+swim2/*_ui_*/
+swim2/*.png
+swim2/*.npy
+swim2/*.pkl
+swim2/*.log
+swim2/*.csv
+# Exception: track the input files we need
+!swim2/crop_FAO.csv
+!swim2/Sensors_overview.xlsx
+
+# ERA5 raw data (re-download with eto/download_era5.py)
+eto/era5_data/
+
+# OS
+.DS_Store
+Thumbs.db

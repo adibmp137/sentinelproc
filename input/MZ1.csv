@@ -1,0 +1,4 @@
+seqNumber,time_epoch,time_parsed,incFeedback,relPrecipitation,color,relImpulse,voltage,vmc2,vmc1,vmc0,absImpulse,iconType,temperature,impulses,adc1,adc0,isReboot,adc2
+1,1743000000,2025-03-28T00:00:00,0,0.0,128950,0.0,0.0,0.0,0.0,0.0,0.0,moisture-0,0.0,0,0.0,0.0,False,0.0
+2,1743000000,2025-03-28T00:00:00,0,0.0,128950,0.0,0.0,0.0,0.0,0.0,0.0,moisture-0,0.0,0,0.0,0.0,False,0.0
+3,1743000000,2025-03-28T00:00:00,0,0.0,128950,0.0,0.0,0.0,0.0,0.0,0.0,moisture-0,0.0,0,0.0,0.0,False,0.0
